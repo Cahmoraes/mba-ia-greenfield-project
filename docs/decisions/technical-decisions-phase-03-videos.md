@@ -34,6 +34,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 
 **Decision:** Opção A — BullMQ + Redis, integrado via `@nestjs/bullmq`.
 
+**Libraries:** `@nestjs/bullmq@^11.0.4`, `bullmq@^5.79.1`
+
 ---
 
 ## TD-02: Organização do object storage (buckets, chaves, SDK)
@@ -52,6 +54,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 **Recommendation:** Opção A — bucket único privado, chaves prefixadas por `videoId`, AWS SDK v3 com `forcePathStyle`. É a organização que mantém a portabilidade MinIO↔S3 (requisito implícito do projeto) e dá localidade natural entre o vídeo e seu thumbnail. URLs pré-assinadas (`s3-request-presigner`) cobrem upload e download sem expor credenciais nem deixar o bucket público. O bucket é criado/garantido na inicialização (idempotente).
 
 **Decision:** Opção A — bucket único `streamtube-videos` (privado), chaves `videos/{videoId}/source` e `videos/{videoId}/thumbnail.jpg`, AWS SDK v3 (`@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`) com `endpoint` MinIO e `forcePathStyle: true`.
+
+**Libraries:** `@aws-sdk/client-s3@^3.x`, `@aws-sdk/s3-request-presigner@^3.x`
 
 ---
 
@@ -72,6 +76,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 
 **Decision:** Opção B — Presigned Multipart Upload (initiate na criação do rascunho, partes direto ao storage, complete dispara o processamento).
 
+**Libraries:** `@aws-sdk/client-s3@^3.x`, `@aws-sdk/s3-request-presigner@^3.x`
+
 ---
 
 ## TD-04: Pré-cadastro do rascunho e gatilho do processamento
@@ -89,6 +95,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 **Recommendation:** Opção A — rascunho na initiate + complete explícito. Dá um ciclo de vida claro e auditável (`draft` existe desde o primeiro byte do upload), um ponto único e testável onde o processamento é disparado, e não depende de configuração de eventos do storage. A finalização do multipart já é obrigatória; reaproveitá-la como gatilho é o caminho de menor atrito. Bucket notifications ficam como evolução futura, não necessária agora.
 
 **Decision:** Opção A — `POST /videos` cria rascunho + initiate multipart; `POST /videos/:id/complete` finaliza, marca `processing` e enfileira o job.
+
+**Libraries:** —
 
 ---
 
@@ -109,6 +117,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 
 **Decision:** Opção A — serviço `video-worker` no Compose, mesma imagem + FFmpeg, entrypoint `main.worker.ts` com contexto NestJS standalone consumindo a fila.
 
+**Libraries:** `@nestjs/bullmq@^11.0.4`; FFmpeg (binários de sistema na imagem do worker)
+
 ---
 
 ## TD-06: Extração de metadados e geração de thumbnail (FFmpeg/ffprobe)
@@ -127,6 +137,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 **Recommendation:** Opção A — binários de sistema via `child_process`, com FFmpeg instalado no Dockerfile do worker. É a abordagem mais robusta e auditável: sem dependência npm não-mantida no caminho crítico, flags explícitas, e fácil de testar em três níveis (unit com spawn mockado; integração rodando ffprobe/ffmpeg de verdade sobre um fixture mp4 pequeno; e2e do fluxo completo). O wrapper fino mantém o código limpo sem terceirizar o controle a uma lib estagnada.
 
 **Decision:** Opção A — `ffmpeg`/`ffprobe` de sistema (instalados na imagem do worker) invocados por um service wrapper sobre `node:child_process`.
+
+**Libraries:** — (FFmpeg de sistema via `node:child_process`, sem dependência npm)
 
 ---
 
@@ -147,6 +159,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 
 **Decision:** Opção A — coluna `public_id` única gerada por `nanoid@3` (linha CommonJS), com retry em colisão amparado pela constraint `UNIQUE`.
 
+**Libraries:** `nanoid@^3.3.15` (linha CommonJS — v5+ é ESM-only)
+
 ---
 
 ## TD-08: Estratégia de streaming (range / 206)
@@ -164,6 +178,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 **Recommendation:** Opção A como contrato primário, com a Opção B reconhecida como caminho de escala em produção. A API range-proxy é a escolha demonstrável e testável (e2e com header `Range` afirmando `206` + `Content-Range`), mantém o storage privado e centraliza visibilidade/acesso — exatamente o que o desafio pede provar nesta fase. O diagrama mostra streaming direto do storage como otimização; documenta-se o trade-off (API no caminho do range) e deixa-se o presigned-direto como evolução, sem reescrever o contrato.
 
 **Decision:** Opção A — `GET /videos/:publicId/stream` com suporte a `Range`, respondendo `206 Partial Content` e proxiando o range do storage (presigned-direto fica como evolução futura).
+
+**Libraries:** `@aws-sdk/client-s3@^3.x`
 
 ---
 
@@ -183,6 +199,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 
 **Decision:** Opção A — `GET /videos/:publicId/download` devolve/redireciona para URL pré-assinada de `GetObject` (download direto do storage).
 
+**Libraries:** `@aws-sdk/s3-request-presigner@^3.x`
+
 ---
 
 ## TD-10: Ciclo de status do vídeo e tratamento de falha
@@ -200,6 +218,8 @@ A infraestrutura nova (object storage, fila e worker) sobe via `nestjs-project/c
 **Recommendation:** Opção A — `draft | processing | ready | error`. É o ciclo que o desafio descreve ("rascunho → processando → pronto/erro") e cada transição tem um gatilho claro e auditável no código (initiate, complete, worker-sucesso, worker-falha). O BullMQ cuida das retentativas com backoff exponencial; só após esgotá-las o vídeo vira `error` com a razão registrada, evitando marcar falha em problemas transitórios. Estados mais finos ficam para fases futuras se a UI exigir.
 
 **Decision:** Opção A — enum `draft | processing | ready | error`; falha vira `error` + `failure_reason` apenas após o BullMQ esgotar as retentativas (backoff exponencial).
+
+**Libraries:** `bullmq@^5.79.1`
 
 ---
 
