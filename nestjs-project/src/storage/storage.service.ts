@@ -203,6 +203,15 @@ export class StorageService implements OnModuleInit {
     );
   }
 
+  /** Presigned GET URL for inline access (e.g. the thumbnail image). */
+  async presignGetUrl(key: string): Promise<string> {
+    return getSignedUrl(
+      this.client,
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      { expiresIn: this.presignExpiration },
+    );
+  }
+
   /** Uploads a small object (e.g. the generated thumbnail). */
   async putObject(key: string, body: Buffer, contentType: string): Promise<void> {
     await this.client.send(
