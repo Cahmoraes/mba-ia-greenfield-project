@@ -204,7 +204,7 @@ export class StorageService implements OnModuleInit {
         Bucket: this.bucket,
         Key: key,
         ResponseContentDisposition: filename
-          ? `attachment; filename="${filename}"`
+          ? `attachment; filename="${filename.replace(/["\r\n\\]/g, '_')}"`
           : 'attachment',
       }),
       { expiresIn: this.presignExpiration },
