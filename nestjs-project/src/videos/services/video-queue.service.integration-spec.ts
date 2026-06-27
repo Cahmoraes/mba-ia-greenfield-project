@@ -33,7 +33,12 @@ describe('VideoQueueService (integration)', () => {
   it('enqueues a process job with the videoId and retry/backoff options', async () => {
     await service.enqueueProcessing('video-123');
 
-    const jobs = await queue.getJobs(['waiting', 'delayed', 'active', 'paused']);
+    const jobs = await queue.getJobs([
+      'waiting',
+      'delayed',
+      'active',
+      'paused',
+    ]);
     expect(jobs).toHaveLength(1);
     expect(jobs[0].name).toBe('process');
     expect(jobs[0].data).toEqual({ videoId: 'video-123' });

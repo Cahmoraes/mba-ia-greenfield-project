@@ -168,7 +168,10 @@ export class VideosService {
     try {
       return await this.storage.getObjectRange(video.storage_key, range);
     } catch (err: any) {
-      if (err?.$metadata?.httpStatusCode === 416 || err?.name === 'InvalidRange') {
+      if (
+        err?.$metadata?.httpStatusCode === 416 ||
+        err?.name === 'InvalidRange'
+      ) {
         throw new RangeNotSatisfiableException();
       }
       throw err;

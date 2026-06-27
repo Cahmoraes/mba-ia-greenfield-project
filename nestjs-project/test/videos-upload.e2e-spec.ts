@@ -39,7 +39,8 @@ describe('Videos upload (e2e)', () => {
     await app.init();
 
     dataSource = moduleFixture.get(DataSource);
-    throttlerStorage = moduleFixture.get<ThrottlerStorageService>(ThrottlerStorage);
+    throttlerStorage =
+      moduleFixture.get<ThrottlerStorageService>(ThrottlerStorage);
     queue = moduleFixture.get<Queue>(getQueueToken(VIDEO_QUEUE));
   });
 
@@ -67,7 +68,9 @@ describe('Videos upload (e2e)', () => {
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email, password: 'password123' });
-    await request(app.getHttpServer()).get('/auth/confirm-email').query({ token });
+    await request(app.getHttpServer())
+      .get('/auth/confirm-email')
+      .query({ token });
     const res = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email, password: 'password123' });
@@ -77,7 +80,12 @@ describe('Videos upload (e2e)', () => {
   it('rejects an unauthenticated upload initiation', async () => {
     await request(app.getHttpServer())
       .post('/videos')
-      .send({ title: 'x', filename: 'x.mp4', contentType: 'video/mp4', fileSize: 100 })
+      .send({
+        title: 'x',
+        filename: 'x.mp4',
+        contentType: 'video/mp4',
+        fileSize: 100,
+      })
       .expect(401);
   });
 
@@ -86,7 +94,12 @@ describe('Videos upload (e2e)', () => {
     await request(app.getHttpServer())
       .post('/videos')
       .set('Authorization', `Bearer ${token}`)
-      .send({ title: 'x', filename: 'x.png', contentType: 'image/png', fileSize: 100 })
+      .send({
+        title: 'x',
+        filename: 'x.png',
+        contentType: 'image/png',
+        fileSize: 100,
+      })
       .expect(415);
   });
 
@@ -137,7 +150,9 @@ describe('Videos upload (e2e)', () => {
 
     // a processing job was enqueued
     const counts = await queue.getJobCounts('waiting', 'delayed', 'active');
-    expect(counts.waiting + counts.delayed + counts.active).toBeGreaterThanOrEqual(1);
+    expect(
+      counts.waiting + counts.delayed + counts.active,
+    ).toBeGreaterThanOrEqual(1);
   });
 
   it('rejects completing a video owned by another user with 403', async () => {
@@ -146,9 +161,17 @@ describe('Videos upload (e2e)', () => {
     const initiate = await request(app.getHttpServer())
       .post('/videos')
       .set('Authorization', `Bearer ${ownerToken}`)
-      .send({ title: 'v', filename: 'v.mp4', contentType: 'video/mp4', fileSize: content.length })
+      .send({
+        title: 'v',
+        filename: 'v.mp4',
+        contentType: 'video/mp4',
+        fileSize: content.length,
+      })
       .expect(201);
-    const putRes = await fetch(initiate.body.parts[0].url, { method: 'PUT', body: content });
+    const putRes = await fetch(initiate.body.parts[0].url, {
+      method: 'PUT',
+      body: content,
+    });
     const etag = putRes.headers.get('etag');
 
     const intruderToken = await login('intruder@test.local');
@@ -165,9 +188,17 @@ describe('Videos upload (e2e)', () => {
     const initiate = await request(app.getHttpServer())
       .post('/videos')
       .set('Authorization', `Bearer ${token}`)
-      .send({ title: 'v', filename: 'v.mp4', contentType: 'video/mp4', fileSize: content.length })
+      .send({
+        title: 'v',
+        filename: 'v.mp4',
+        contentType: 'video/mp4',
+        fileSize: content.length,
+      })
       .expect(201);
-    const putRes = await fetch(initiate.body.parts[0].url, { method: 'PUT', body: content });
+    const putRes = await fetch(initiate.body.parts[0].url, {
+      method: 'PUT',
+      body: content,
+    });
     const etag = putRes.headers.get('etag');
     const body = { parts: [{ partNumber: 1, etag }] };
 

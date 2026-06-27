@@ -47,12 +47,18 @@ describe('VideosService', () => {
       findOneBy: jest.fn(),
       existsBy: jest.fn().mockResolvedValue(false),
     };
-    channels = { findOneBy: jest.fn().mockResolvedValue({ id: 'chan-1' } as Channel) };
+    channels = {
+      findOneBy: jest.fn().mockResolvedValue({ id: 'chan-1' } as Channel),
+    };
     storage = {
       createMultipartUpload: jest.fn().mockResolvedValue('upload-1'),
-      presignUploadPart: jest.fn(async (_k, _u, n) => `https://minio/part/${n}`),
+      presignUploadPart: jest.fn(
+        async (_k, _u, n) => `https://minio/part/${n}`,
+      ),
       completeMultipartUpload: jest.fn().mockResolvedValue(undefined),
-      headObject: jest.fn().mockResolvedValue({ contentLength: 250, contentType: 'video/mp4' }),
+      headObject: jest
+        .fn()
+        .mockResolvedValue({ contentLength: 250, contentType: 'video/mp4' }),
     };
     publicIds = { generateUnique: jest.fn().mockResolvedValue('pubABCDEFGHI') };
     queue = { enqueueProcessing: jest.fn().mockResolvedValue(undefined) };
@@ -77,13 +83,19 @@ describe('VideosService', () => {
 
     it('rejects a non-video content type', async () => {
       await expect(
-        service.initiateUpload('user-1', { ...baseDto, contentType: 'image/png' }),
+        service.initiateUpload('user-1', {
+          ...baseDto,
+          contentType: 'image/png',
+        }),
       ).rejects.toBeInstanceOf(UnsupportedMediaTypeException);
     });
 
     it('rejects a file larger than the maximum', async () => {
       await expect(
-        service.initiateUpload('user-1', { ...baseDto, fileSize: config.maxSizeBytes + 1 }),
+        service.initiateUpload('user-1', {
+          ...baseDto,
+          fileSize: config.maxSizeBytes + 1,
+        }),
       ).rejects.toBeInstanceOf(FileTooLargeException);
     });
 
@@ -115,21 +127,30 @@ describe('VideosService', () => {
     it('throws when the video does not exist', async () => {
       videos.findOneBy.mockResolvedValue(null);
       await expect(
-        service.completeUpload('user-1', 'missing', { parts: [{ partNumber: 1, etag: 'e' }] }),
+        service.completeUpload('user-1', 'missing', {
+          parts: [{ partNumber: 1, etag: 'e' }],
+        }),
       ).rejects.toBeInstanceOf(VideoNotFoundException);
     });
 
     it('throws when the caller is not the owner', async () => {
       videos.findOneBy.mockResolvedValue({ ...draft, channel_id: 'other' });
       await expect(
-        service.completeUpload('user-1', 'vid-1', { parts: [{ partNumber: 1, etag: 'e' }] }),
+        service.completeUpload('user-1', 'vid-1', {
+          parts: [{ partNumber: 1, etag: 'e' }],
+        }),
       ).rejects.toBeInstanceOf(NotVideoOwnerException);
     });
 
     it('throws when the video is not in draft', async () => {
-      videos.findOneBy.mockResolvedValue({ ...draft, status: VideoStatus.PROCESSING });
+      videos.findOneBy.mockResolvedValue({
+        ...draft,
+        status: VideoStatus.PROCESSING,
+      });
       await expect(
-        service.completeUpload('user-1', 'vid-1', { parts: [{ partNumber: 1, etag: 'e' }] }),
+        service.completeUpload('user-1', 'vid-1', {
+          parts: [{ partNumber: 1, etag: 'e' }],
+        }),
       ).rejects.toBeInstanceOf(InvalidVideoStateException);
     });
 

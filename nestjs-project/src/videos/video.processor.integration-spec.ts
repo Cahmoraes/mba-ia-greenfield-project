@@ -112,7 +112,9 @@ describe('VideoProcessor (integration)', () => {
     expect(ready.duration_seconds).toBeGreaterThanOrEqual(1);
     expect(ready.thumbnail_key).toBe(`videos/${publicId}/thumbnail.jpg`);
     expect(ready.metadata).toMatchObject({ codec: expect.any(String) });
-    expect(await storage.objectExists(ready.thumbnail_key as string)).toBe(true);
+    expect(await storage.objectExists(ready.thumbnail_key as string)).toBe(
+      true,
+    );
   }, 60000);
 
   it('marks the video as error when the source is not processable', async () => {

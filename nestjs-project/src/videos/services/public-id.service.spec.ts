@@ -31,7 +31,9 @@ describe('PublicIdService', () => {
   });
 
   it('throws when no free id is found within maxAttempts', async () => {
-    const exists = jest.fn<Promise<boolean>, [string]>().mockResolvedValue(true);
+    const exists = jest
+      .fn<Promise<boolean>, [string]>()
+      .mockResolvedValue(true);
     await expect(service.generateUnique(exists, 3)).rejects.toThrow(
       /unique public_id/,
     );

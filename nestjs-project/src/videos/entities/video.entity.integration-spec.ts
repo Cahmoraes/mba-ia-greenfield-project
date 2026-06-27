@@ -92,7 +92,11 @@ describe('Video entity (integration)', () => {
     });
     expect(found.size_bytes).toBe(10_737_418_240);
     expect(found.duration_seconds).toBe(42);
-    expect(found.metadata).toEqual({ codec: 'h264', width: 1920, height: 1080 });
+    expect(found.metadata).toEqual({
+      codec: 'h264',
+      width: 1920,
+      height: 1080,
+    });
     expect(found.channel.id).toBe(channelId);
   });
 

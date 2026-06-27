@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 
 // URL-safe, collision-resistant alphabet (no '-'/'_' to avoid router/URL edge cases).
-const ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const ALPHABET =
+  '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const ID_LENGTH = 11;
 
 /**

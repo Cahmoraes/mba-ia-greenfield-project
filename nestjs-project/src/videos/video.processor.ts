@@ -11,10 +11,7 @@ import { pipeline } from 'node:stream/promises';
 import { Repository } from 'typeorm';
 import videoConfig from '../config/video.config';
 import { StorageService } from '../storage/storage.service';
-import {
-  VIDEO_QUEUE,
-  type ProcessVideoJobData,
-} from '../queue/video-jobs';
+import { VIDEO_QUEUE, type ProcessVideoJobData } from '../queue/video-jobs';
 import { Video } from './entities/video.entity';
 import { assertTransition, VideoStatus } from './video-status';
 import { FfmpegService } from './services/ffmpeg.service';
@@ -82,7 +79,9 @@ export class VideoProcessor extends WorkerHost {
       video.thumbnail_key = thumbnailKey;
       await this.videos.save(video);
 
-      this.logger.log(`Video ${videoId} processed (duration=${durationSeconds}s)`);
+      this.logger.log(
+        `Video ${videoId} processed (duration=${durationSeconds}s)`,
+      );
     } finally {
       await Promise.allSettled([unlink(sourcePath), unlink(thumbPath)]);
     }
@@ -103,6 +102,8 @@ export class VideoProcessor extends WorkerHost {
     video.status = VideoStatus.ERROR;
     video.failure_reason = job.failedReason ?? 'processing failed';
     await this.videos.save(video);
-    this.logger.error(`Video ${videoId} marked as error: ${video.failure_reason}`);
+    this.logger.error(
+      `Video ${videoId} marked as error: ${video.failure_reason}`,
+    );
   }
 }

@@ -89,8 +89,8 @@ export class FfmpegService {
       const child = spawn(command, args);
       let stdout = '';
       let stderr = '';
-      child.stdout.on('data', (chunk) => (stdout += chunk.toString()));
-      child.stderr.on('data', (chunk) => (stderr += chunk.toString()));
+      child.stdout.on('data', (chunk: Buffer) => (stdout += chunk.toString()));
+      child.stderr.on('data', (chunk: Buffer) => (stderr += chunk.toString()));
       child.on('error', (err) => reject(err));
       child.on('close', (code) => {
         if (code === 0) {

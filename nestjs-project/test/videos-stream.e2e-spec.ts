@@ -26,9 +26,16 @@ describe('Videos stream/download/read (e2e)', () => {
     }).compile();
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
-    app.useGlobalFilters(new DomainExceptionFilter(), new ValidationExceptionFilter());
+    app.useGlobalFilters(
+      new DomainExceptionFilter(),
+      new ValidationExceptionFilter(),
+    );
     await app.init();
 
     dataSource = moduleFixture.get(DataSource);
@@ -85,7 +92,9 @@ describe('Videos stream/download/read (e2e)', () => {
   });
 
   it('returns 404 for an unknown video', async () => {
-    await request(app.getHttpServer()).get('/videos/does-not-exist').expect(404);
+    await request(app.getHttpServer())
+      .get('/videos/does-not-exist')
+      .expect(404);
   });
 
   it('streams a byte range with 206 Partial Content', async () => {

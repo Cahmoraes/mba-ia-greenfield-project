@@ -74,6 +74,8 @@ describe('FfmpegService', () => {
 
   it('rejects when the process exits non-zero', async () => {
     mockSpawn.mockReturnValue(fakeChild('', 1));
-    await expect(service.probe('/tmp/missing.mp4')).rejects.toThrow(/ffprobe failed/);
+    await expect(service.probe('/tmp/missing.mp4')).rejects.toThrow(
+      /ffprobe failed/,
+    );
   });
 });

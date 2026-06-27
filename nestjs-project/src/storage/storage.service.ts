@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  type OnModuleInit,
-} from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import {
   AbortMultipartUploadCommand,
@@ -74,8 +69,14 @@ export class StorageService implements OnModuleInit {
       await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
     } catch (err: any) {
       const status = err?.$metadata?.httpStatusCode;
-      if (status === 404 || err?.name === 'NotFound' || err?.name === 'NoSuchBucket') {
-        await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
+      if (
+        status === 404 ||
+        err?.name === 'NotFound' ||
+        err?.name === 'NoSuchBucket'
+      ) {
+        await this.client.send(
+          new CreateBucketCommand({ Bucket: this.bucket }),
+        );
         this.logger.log(`Created bucket "${this.bucket}"`);
       } else {
         throw err;
@@ -84,7 +85,10 @@ export class StorageService implements OnModuleInit {
   }
 
   /** Starts a multipart upload and returns the uploadId. */
-  async createMultipartUpload(key: string, contentType: string): Promise<string> {
+  async createMultipartUpload(
+    key: string,
+    contentType: string,
+  ): Promise<string> {
     const out = await this.client.send(
       new CreateMultipartUploadCommand({
         Bucket: this.bucket,
@@ -150,7 +154,9 @@ export class StorageService implements OnModuleInit {
   }
 
   /** Returns object size/type, or throws if it does not exist. */
-  async headObject(key: string): Promise<{ contentLength: number; contentType: string }> {
+  async headObject(
+    key: string,
+  ): Promise<{ contentLength: number; contentType: string }> {
     const out = await this.client.send(
       new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
     );
@@ -163,7 +169,9 @@ export class StorageService implements OnModuleInit {
   /** True when the object exists in the bucket. */
   async objectExists(key: string): Promise<boolean> {
     try {
-      await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }));
+      await this.client.send(
+        new HeadObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
       return true;
     } catch {
       return false;
@@ -213,7 +221,11 @@ export class StorageService implements OnModuleInit {
   }
 
   /** Uploads a small object (e.g. the generated thumbnail). */
-  async putObject(key: string, body: Buffer, contentType: string): Promise<void> {
+  async putObject(
+    key: string,
+    body: Buffer,
+    contentType: string,
+  ): Promise<void> {
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,

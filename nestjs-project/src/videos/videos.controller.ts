@@ -58,7 +58,9 @@ export class VideosController {
 
   @Public()
   @Get(':publicId/stream')
-  @ApiOperation({ summary: 'Stream the video (HTTP Range / 206 Partial Content)' })
+  @ApiOperation({
+    summary: 'Stream the video (HTTP Range / 206 Partial Content)',
+  })
   async stream(
     @Param('publicId') publicId: string,
     @Headers('range') range: string | undefined,

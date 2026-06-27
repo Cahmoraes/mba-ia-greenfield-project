@@ -21,6 +21,8 @@ describe('assertTransition', () => {
     [VideoStatus.ERROR, VideoStatus.PROCESSING],
     [VideoStatus.PROCESSING, VideoStatus.DRAFT],
   ])('rejects the invalid transition %s -> %s', (from, to) => {
-    expect(() => assertTransition(from, to)).toThrow(InvalidVideoStateException);
+    expect(() => assertTransition(from, to)).toThrow(
+      InvalidVideoStateException,
+    );
   });
 });
