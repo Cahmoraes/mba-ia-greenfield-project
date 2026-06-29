@@ -23,7 +23,7 @@ See `docs/diagrams/software-arch.mermaid` for the full diagram. Key containers:
 - **Video Worker** (FFmpeg) → consumes jobs from queue, processes videos, updates DB and storage
 - **Database** (PostgreSQL) → users, channels, videos, comments, likes
 - **Object Storage** (S3/MinIO) → video files and thumbnails
-- **Message Queue** (TBD) → video processing job queue
+- **Message Queue** (BullMQ + Redis) → fila `video-processing`; jobs publicados pela API, consumidos pelo Video Worker
 - **Email Service** (SMTP) → account confirmation and password recovery
 
 ## Docker Networking
@@ -36,6 +36,51 @@ Inside a container, `localhost` refers to the container itself, not the host mac
 - **Wrong:** `DB_HOST=localhost`
 
 This applies to all environment variables, configuration files, and code that references service hosts.
+
+## Videos Module
+
+O módulo de vídeos (`src/videos/`) implementa upload multipart, processamento assíncrono com FFmpeg e streaming HTTP Range.
+
+### Endpoints HTTP (`/videos`)
+
+| Método | Rota | Autenticado | Descrição |
+|--------|------|-------------|-----------|
+| POST | `/videos` | Sim | Inicia multipart upload; retorna `videoId`, `uploadId` e presigned URLs por parte |
+| POST | `/videos/:id/complete` | Sim | Finaliza upload e enfileira processamento; status → `PROCESSING` |
+| GET | `/videos/:publicId` | Não | Metadados e status do vídeo (`DRAFT` / `PROCESSING` / `READY` / `ERROR`) |
+| GET | `/videos/:publicId/stream` | Não | Streaming HTTP com suporte a Range / 206 Partial Content |
+| GET | `/videos/:publicId/download` | Não | Redirect 302 para presigned URL de download no MinIO/S3 |
+
+### Fila e Worker (BullMQ + Redis)
+
+- **Fila:** `video-processing` (queue name definido em `src/queue/video-jobs.ts`)
+- **Job:** `process` — payload `{ videoId: string }`
+- **Producer:** `VideoQueueService` (`src/videos/services/video-queue.service.ts`) — chamado pela API após `complete`
+- **Consumer:** `VideoProcessor` (`src/videos/video.processor.ts`) — estende `WorkerHost` do BullMQ
+- **Worker entrypoint:** `src/main.worker.ts` — processo Node separado, sem HTTP, apenas DB + Storage + Queue
+- **Fluxo do job:** download do source → extração de metadados com FFmpeg → geração de thumbnail → upload thumbnail → update DB (`READY`) ou `ERROR` em falha
+- **Retry:** exponential backoff, 2000ms inicial, 5 tentativas (configurável via `VIDEO_PROCESSING_ATTEMPTS`)
+- **Concorrência:** `VIDEO_PROCESSING_CONCURRENCY` (default: 2)
+- **Redis:** host `redis` (Docker service name), porta `REDIS_PORT` (default: 6379)
+
+### Storage (MinIO em dev / S3 em prod)
+
+- **SDK:** `@aws-sdk/client-s3` v3
+- **Bucket:** `streamtube-videos` (env `S3_BUCKET`)
+- **Chaves de objeto:**
+  - `videos/{publicId}/source` — arquivo enviado pelo cliente
+  - `videos/{publicId}/thumbnail.jpg` — thumbnail gerado pelo worker
+- **Upload:** multipart com presigned URLs; o cliente faz PUT direto no MinIO/S3
+- **Stream:** `StorageService.getObjectRange` — suporte nativo a HTTP Range
+- **Download:** presigned redirect (302) gerado pela API
+- **Env vars principais:** `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_FORCE_PATH_STYLE=true` (obrigatório para MinIO), `S3_PRESIGN_EXPIRATION`
+
+### State Machine de Status
+
+```
+DRAFT → PROCESSING → READY
+                   ↘ ERROR
+```
 
 ## Working Principles
 
